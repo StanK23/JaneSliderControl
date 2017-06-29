@@ -18,7 +18,7 @@ import UIKit
     fileprivate let imageView:UIImageView = UIImageView()
     
     //MARK: - Public Variables
-    fileprivate(set) var progress:Float = 0.0
+    fileprivate(set) open var progress:Float = 0.0
     
     //MARK: - IBInspectable Variables
     @IBInspectable open var sliderColor:UIColor = UIColor.lightGray {
