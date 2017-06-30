@@ -157,15 +157,8 @@ import UIKit
             self.shouldSlide = x > (self.sliderWidthConstraint.constant - CGFloat(self.sliderWidth)) && x < self.sliderWidthConstraint.constant + padding
             self.sendActions(for: .editingDidBegin)
         case .changed:
-            guard self.shouldSlide && x > CGFloat(self.sliderWidth) && x <= self.bounds.size.width + padding else { return }
             self.sliderWidthConstraint.constant = x
             self.progress = CGFloat(min(x/self.bounds.size.width, 1))
-            self.sendActions(for: .valueChanged)
-        case .ended:fallthrough
-        case .cancelled:
-            guard self.shouldSlide else { return }
-            self.shouldSlide = false
-            
             currentSection = Int(round(x / oneSection))
             if currentSection <= 0 {
                 currentSection = 1
@@ -173,6 +166,12 @@ import UIKit
             if currentSection > sectionCount {
                 currentSection = sectionCount
             }
+
+            self.sendActions(for: .valueChanged)
+        case .ended:fallthrough
+        case .cancelled:
+            guard self.shouldSlide else { return }
+            self.shouldSlide = false
             
             let finalX = CGFloat(currentSection) * oneSection
             self.progress = finalX / self.bounds.size.width
