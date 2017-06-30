@@ -10,66 +10,76 @@ import UIKit
 
 @IBDesignable open class SliderControl: UIControl {
     //MARK: - Private Variables
-    fileprivate let slider:UIView = UIView()
-    fileprivate let sliderLabel:UILabel = UILabel()
-    fileprivate var sliderWidthConstraint:NSLayoutConstraint!
-    fileprivate var sliderImageWidthConstraint:NSLayoutConstraint!
+    fileprivate let slider: UIView = UIView()
+    fileprivate let sliderLabel: UILabel = UILabel()
+    fileprivate var sliderWidthConstraint: NSLayoutConstraint!
+    fileprivate var sliderImageWidthConstraint: NSLayoutConstraint!
     fileprivate var shouldSlide: Bool = false
-    fileprivate let imageView:UIImageView = UIImageView()
-    
+    fileprivate let imageView: UIImageView = UIImageView()
+    open var currentSection: Int = 1
     //MARK: - Public Variables
-    fileprivate(set) open var progress:Float = 0.0
+    fileprivate(set) open var progress: CGFloat = 0.0
     
     //MARK: - IBInspectable Variables
-    @IBInspectable open var sliderColor:UIColor = UIColor.lightGray {
+    @IBInspectable open var sliderColor: UIColor = UIColor.lightGray {
         didSet {
             self.slider.backgroundColor = self.sliderColor
             self.setNeedsLayout()
         }
     }
-    @IBInspectable open var textColor:UIColor = UIColor.black {
+    
+    @IBInspectable open var sectionCount: Int = 1
+    
+    @IBInspectable open var textColor: UIColor = UIColor.black {
         didSet {
             self.sliderLabel.textColor = self.textColor
             self.setNeedsLayout()
         }
     }
-    @IBInspectable open var cornerRadius:Float = 0 {
+    @IBInspectable open var cornerRadius: Float = 0 {
         didSet {
             self.layer.cornerRadius = CGFloat(self.cornerRadius)
             self.slider.layer.cornerRadius = CGFloat(self.cornerRadius)
             self.setNeedsLayout()
         }
     }
-    @IBInspectable open var sliderText:String = "" {
+    @IBInspectable open var sliderText: String = "" {
         didSet {
             self.sliderLabel.text = sliderText
             self.setNeedsLayout()
         }
     }
-    @IBInspectable open var sliderWidth:Float = 50.0 {
+    @IBInspectable open var sliderWidth: Float = 50.0 {
         didSet {
             self.sliderWidthConstraint.constant = CGFloat(self.sliderWidth)
             self.sliderImageWidthConstraint.constant = CGFloat(self.sliderWidth)
             self.setNeedsLayout()
         }
     }
-    @IBInspectable open var sliderImage:UIImage? = nil {
+    @IBInspectable open var sliderImage: UIImage? = nil {
         didSet {
             self.imageView.image = self.sliderImage
             self.setNeedsLayout()
         }
     }
-    @IBInspectable open var sliderImageContentMode:UIViewContentMode = .scaleAspectFit {
+    @IBInspectable open var sliderImageContentMode: UIViewContentMode = .scaleAspectFit {
         didSet {
             self.imageView.contentMode = self.sliderImageContentMode
             self.setNeedsLayout()
         }
     }
-    @IBInspectable open var sliderFont:UIFont = UIFont.systemFont(ofSize: 14) {
+    @IBInspectable open var sliderFont: UIFont = UIFont.systemFont(ofSize: 14) {
         didSet {
             self.sliderLabel.font = self.sliderFont
             self.setNeedsLayout()
         }
+    }
+    
+    override open func awakeFromNib() {
+        super.awakeFromNib()
+        let oneSection: CGFloat = self.bounds.size.width / CGFloat(sectionCount)
+        self.sliderWidthConstraint.constant = oneSection
+        self.progress = oneSection / self.bounds.size.width
     }
     
     //MARK: - UIControl
@@ -126,6 +136,7 @@ import UIKit
         //Add pan gesture to slide the slider view
         let pan = UIPanGestureRecognizer(target: self, action: #selector(self.panGesture(_:)))
         self.addGestureRecognizer(pan)
+
     }
     
     //MARK: - Public Methods
@@ -139,53 +150,47 @@ import UIKit
     func panGesture(_ recognizer:UIPanGestureRecognizer) {
         let x = recognizer.location(in: self).x
         let padding: CGFloat = 20.0
-        
+        let oneSection: CGFloat = self.bounds.size.width / CGFloat(sectionCount)
         switch (recognizer.state) {
-            case .began:
-                //Only slide if the gestures starts within the slide frame
-                self.shouldSlide = x > (self.sliderWidthConstraint.constant - CGFloat(self.sliderWidth)) && x < self.sliderWidthConstraint.constant + padding
-                self.sendActions(for: .editingDidBegin)
-            case .changed:
-                guard self.shouldSlide && x > CGFloat(self.sliderWidth) && x <= self.bounds.size.width + padding else { return }
-                self.sliderWidthConstraint.constant = x
-                self.progress = Float(min(x/self.bounds.size.width, 1))
-                self.sendActions(for: .valueChanged)
-            case .ended:fallthrough
-            case .cancelled:
-                guard self.shouldSlide else { return }
-                self.shouldSlide = false
-                
-                self.progress = Float(x/self.bounds.size.width)
-                let success: Bool
-                let finalX: CGFloat
-                
-                //If we are more than 65% through the swipe and moving the the right direction
-                if self.progress > 0.65 && recognizer.velocity(in: self).x > -1.0 {
-                    success = true
-                    finalX = self.bounds.size.width
-                } else {
-                    success = false
-                    finalX = CGFloat(self.sliderWidth)
-                    self.progress = 0.0
+        case .began:
+            //Only slide if the gestures starts within the slide frame
+            self.shouldSlide = x > (self.sliderWidthConstraint.constant - CGFloat(self.sliderWidth)) && x < self.sliderWidthConstraint.constant + padding
+            self.sendActions(for: .editingDidBegin)
+        case .changed:
+            guard self.shouldSlide && x > CGFloat(self.sliderWidth) && x <= self.bounds.size.width + padding else { return }
+            self.sliderWidthConstraint.constant = x
+            self.progress = CGFloat(min(x/self.bounds.size.width, 1))
+            self.sendActions(for: .valueChanged)
+        case .ended:fallthrough
+        case .cancelled:
+            guard self.shouldSlide else { return }
+            self.shouldSlide = false
+            
+            currentSection = Int(round(x / oneSection))
+            if currentSection <= 0 {
+                currentSection = 1
+            }
+            if currentSection > sectionCount {
+                currentSection = sectionCount
+            }
+            
+            let finalX = CGFloat(currentSection) * oneSection
+            self.progress = finalX / self.bounds.size.width
+            
+            self.sliderWidthConstraint.constant = finalX
+            self.setNeedsUpdateConstraints()
+            
+            UIView.animate(withDuration: 0.25, animations: {
+                self.layoutIfNeeded()
+            }, completion: { (finished) in
+                if #available(iOS 9.0, *) {
+                    self.sendActions(for: .primaryActionTriggered)
                 }
                 
-                self.sliderWidthConstraint.constant = finalX
-                self.setNeedsUpdateConstraints()
+                self.sendActions(for: .editingDidEnd)
                 
-                UIView.animate(withDuration: 0.25, animations: { 
-                    self.layoutIfNeeded()
-                }, completion: { (finished) in
-                    if success {
-                        if #available(iOS 9.0, *) {
-                            self.sendActions(for: .primaryActionTriggered)
-                        }
-                        
-                        self.sendActions(for: .editingDidEnd)
-                    } else {
-                        self.sendActions(for: .touchCancel)
-                    }
-                })
-            default: break
+            })
+        default: break
         }
     }
 }
