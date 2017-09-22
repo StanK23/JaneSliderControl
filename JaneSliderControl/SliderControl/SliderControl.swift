@@ -16,7 +16,12 @@ import UIKit
     fileprivate var sliderImageWidthConstraint: NSLayoutConstraint!
     fileprivate var shouldSlide: Bool = false
     fileprivate let imageView: UIImageView = UIImageView()
-    open var currentSection: Int = 1
+    open var currentSection: Int = 1 {
+        didSet {
+            let finalX = CGFloat(currentSection) * self.bounds.size.width / CGFloat(sectionCount)
+            self.progress = finalX / self.bounds.size.width
+        }
+    }
     //MARK: - Public Variables
     fileprivate(set) open var progress: CGFloat = 0.0
     
@@ -53,6 +58,7 @@ import UIKit
         didSet {
             self.sliderWidthConstraint.constant = CGFloat(self.sliderWidth)
             self.sliderImageWidthConstraint.constant = CGFloat(self.sliderWidth)
+            self.setNeedsUpdateConstraints()
             self.setNeedsLayout()
         }
     }
